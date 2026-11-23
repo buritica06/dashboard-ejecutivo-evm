@@ -1,0 +1,19 @@
+# Local AI / IDE tooling (prevents leaking local machine paths)
+.claude/
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment & secrets
+.env
+.env.*
+
+# Logs & temporary files
+*.log
+*.tmp
+_site/
+node_modules/

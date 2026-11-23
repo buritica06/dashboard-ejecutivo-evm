@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Project Management Analytics</title>
+<style>
+:root{
+  --p1:#6f42c1; --p2:#a693e0; --p3:#d8cef2; --p4:#a86bc8; --deep:#5b2fb5;
+  --gray:#cfcfcf; --bg:#ececf1; --card:#fff; --ink:#252423; --muted:#605e5c; --over:#f4511e;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:13px}
+.app{min-height:100vh;border-left:8px solid var(--deep);background:linear-gradient(var(--bg),var(--bg)) padding-box}
+button{font:inherit}
+/* header */
+.hdr{display:flex;align-items:stretch;height:56px;background:#fff;position:sticky;top:0;z-index:30;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.brand{background:linear-gradient(90deg,#5b2fb5,#8f6ad8);color:#fff;font-weight:700;font-size:22px;padding:0 70px 0 18px;clip-path:polygon(0 0,100% 0,calc(100% - 46px) 100%,0 100%);display:flex;align-items:center;white-space:nowrap}
+.tabs{flex:1;display:flex;justify-content:center;gap:6px;min-width:0}
+.tab{background:none;border:0;padding:0 16px;font-size:14px;color:#333;border-bottom:3px solid transparent;cursor:pointer;line-height:1.15;max-width:190px}
+.tab:hover{background:#f4f0fc}
+.tab.active{border-bottom-color:var(--p1);font-weight:600;color:#111}
+.tools{background:linear-gradient(90deg,#8f6ad8,#5b2fb5);clip-path:polygon(46px 0,100% 0,100% 100%,0 100%);padding:0 14px 0 70px;display:flex;align-items:center;gap:14px}
+.ib{width:32px;height:32px;border-radius:50%;border:0;background:#111;color:#fff;display:grid;place-items:center;cursor:pointer;position:relative}
+.ib.plain{background:transparent}
+.ib:hover{outline:2px solid #fff}
+.ib .dot{position:absolute;top:2px;right:2px;width:9px;height:9px;border-radius:50%;background:var(--over);border:1.5px solid #fff;display:none}
+.ib.on .dot{display:block}
+/* slicer panel */
+.slp{position:absolute;right:0;top:56px;background:linear-gradient(90deg,#7d58d0,#5b2fb5);padding:12px 16px 14px;display:none;gap:14px;border-radius:0 0 0 10px;box-shadow:0 6px 18px rgba(0,0,0,.25);z-index:40;flex-wrap:wrap}
+.slp.open{display:flex}
+.slicer{width:200px;position:relative}
+.slicer label{display:block;color:#fff;font-weight:600;font-size:12px;margin-bottom:4px}
+.sbtn{width:100%;background:#fff;border:1px solid #bbb;border-radius:3px;padding:5px 8px;text-align:left;cursor:pointer;display:flex;justify-content:space-between;gap:6px}
+.sbtn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slist{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #bbb;box-shadow:0 6px 14px rgba(0,0,0,.2);max-height:260px;overflow:auto;display:none;z-index:50}
+.slist.open{display:block}
+.slist label{color:#222;font-weight:400;display:flex;gap:8px;align-items:center;padding:6px 10px;margin:0;cursor:pointer;font-size:13px}
+.slist label:hover{background:#f1ecfb}
+.slist input{accent-color:var(--p1)}
+.slist .all{border-bottom:1px solid #eee;font-weight:600}
+/* filter chips */
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px 0;min-height:8px}
+.chip{background:#fff;border:1px solid var(--p2);color:var(--deep);border-radius:12px;padding:2px 6px 2px 10px;font-size:12px;display:flex;align-items:center;gap:4px}
+.chip button{border:0;background:none;color:var(--deep);cursor:pointer;font-size:14px;line-height:1;padding:0 2px}
+/* grid */
+main{padding:10px 12px 14px}
+.page{display:grid;grid-template-columns:repeat(24,minmax(0,1fr));grid-template-rows:122px 122px auto;gap:10px}
+.card{background:var(--card);border-radius:7px;padding:10px 12px;box-shadow:0 1px 2px rgba(0,0,0,.07);position:relative;min-width:0;display:flex;flex-direction:column}
+.card h3{font-size:13px;font-weight:600;margin:0;padding-right:44px}
+.sub{font-size:10.5px;color:var(--muted);margin-top:1px}
+.info{position:absolute;right:10px;top:9px;width:16px;height:16px;border:1px solid #999;border-radius:50%;font-size:10px;color:#777;display:grid;place-items:center;cursor:help}
+.up{position:absolute;right:32px;top:6px;border:1px solid var(--p2);background:#f4f0fc;color:var(--deep);border-radius:4px;font-size:11px;padding:1px 7px;cursor:pointer}
+.legend{display:flex;gap:14px;font-size:11px;color:#444;margin:8px 0 4px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.tall{height:470px}
+/* KPIs */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px;height:100%;align-content:center}
+.kl{font-size:13px;color:#444;margin-bottom:10px}
+.kv{font-size:23px;font-weight:500;letter-spacing:.2px;white-space:nowrap}
+/* horizontal bars */
+.hb{overflow:auto;flex:1;padding-right:4px;margin-top:4px}
+.hb-row{display:grid;grid-template-columns:130px 1fr 54px;align-items:center;gap:8px;height:34px;cursor:pointer;border-radius:3px;transition:opacity .15s}
+.hb-row:hover{background:#f6f3fd}
+.hb-row:focus-visible,.slice:focus-visible,.vb:focus-visible{outline:2px solid var(--p1)}
+.hb-l{text-align:right;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hb-t{position:relative;height:20px}
+.hb-p{position:absolute;left:0;top:0;bottom:0;background:var(--gray)}
+.hb-a{position:absolute;left:0;top:5px;bottom:5px;background:var(--p1)}
+.hb-a.over{background:var(--over)}
+.hb-v{font-size:11px;color:var(--p1)}
+.hb-v.over{color:var(--over)}
+.dim{opacity:.32}
+.selrow .hb-l{font-weight:700}
+/* svg charts */
+svg{display:block;width:100%;height:auto}
+.slice,.vb{cursor:pointer;transition:opacity .15s}
+.slice:hover,.vb:hover{filter:brightness(1.08)}
+.chartbox{flex:1;display:flex;align-items:center;justify-content:center;min-height:0}
+.split{display:flex;flex-direction:column;gap:6px;flex:1}
+.split>div{flex:1;display:flex;flex-direction:column;min-height:0}
+.empty{color:#888;text-align:center;padding:30px 0;font-size:12px}
+/* gauge */
+.gauge-meta{text-align:center;margin-top:4px}
+.gauge-meta .l{font-size:12px;color:#555}
+.gauge-meta .v{font-size:18px;font-weight:600}
+/* table */
+.tbl-wrap{overflow:auto;flex:1;margin-top:2px}
+table{border-collapse:collapse;width:100%;font-size:12px;min-width:1150px}
+thead th{position:sticky;top:0;background:#fff;text-align:left;font-weight:500;padding:8px 6px;border-bottom:1px solid #ddd;white-space:nowrap;cursor:pointer;user-select:none;z-index:2}
+thead th:hover{background:#f6f3fd}
+th.num,td.num{text-align:right}
+tbody td{padding:6px 6px;border-bottom:1px solid #f1f1f1;white-space:nowrap}
+tr.dep td{font-weight:700;background:#fff}
+tr.prj td{background:#f7f7f7}
+tr.tsk td{background:#fff;color:#333}
+tr.prj td:first-child{padding-left:20px}
+tr.tsk td:first-child{padding-left:46px}
+tr.dep,tr.prj{cursor:pointer}
+tr.dep:hover td,tr.prj:hover td{background:#efe9fb}
+tr.selr td{background:#e3d9f8 !important}
+tr.dimr td{opacity:.45}
+tr.tot td{font-weight:700;border-top:2px solid #333;background:#fff;position:sticky;bottom:0}
+.exp{display:inline-grid;place-items:center;width:13px;height:13px;border:1px solid #888;font-size:11px;line-height:1;margin-right:6px;color:#444;cursor:pointer;background:#fff;vertical-align:-1px}
+.ts{display:block;margin:-6px -6px;padding:6px 6px}
+.ts.Completed{background:#a98be2;color:#111}
+.ts.InProgress{background:#d9ccf5}
+.ts.NotStarted{background:#e06666;color:#111}
+.neg{color:#b42318}
+/* tooltip */
+#tip{position:fixed;pointer-events:none;background:#fff;border:1px solid #ccc;box-shadow:0 4px 14px rgba(0,0,0,.18);padding:7px 10px;font-size:12px;border-radius:4px;z-index:100;display:none;max-width:280px}
+#tip b{color:var(--deep)}
+#tip table{min-width:0;font-size:12px}
+#tip td{padding:1px 6px 1px 0;border:0}
+/* help */
+#help{position:fixed;inset:0;background:rgba(20,10,40,.55);z-index:90;display:none;cursor:pointer}
+#help.open{display:block}
+.co{position:absolute;background:#2f2f6b;color:#fff;padding:10px 16px;font-size:17px;border-radius:2px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,.3);max-width:300px}
+.co.bottom{left:50%;transform:translateX(-50%);bottom:24px;font-size:20px;max-width:none;white-space:nowrap}
+/* responsive */
+@media (max-width:1000px){
+  .page{grid-template-columns:1fr;grid-template-rows:none}
+  .page>.card{grid-column:1/-1 !important;grid-row:auto !important}
+  .kpis{min-height:96px}
+  .brand{font-size:16px;padding-right:50px}
+  .tabs{overflow-x:auto;justify-content:flex-start}
+  .tab{padding:0 10px;font-size:12px}
+}
+@media (max-width:640px){
+  .hdr{flex-wrap:wrap;height:auto}
+  .brand{flex:1;min-height:46px;clip-path:none}
+  .tools{clip-path:none;padding:0 12px}
+  .tabs{order:3;flex-basis:100%;height:42px;border-top:1px solid #eee}
+  .hdr{position:sticky}
+  .slp{top:100%;left:0;right:0;border-radius:0}
+  .slicer{width:100%}
+  main{padding:10px 8px}
+  .hb-row{grid-template-columns:96px 1fr 46px}
+  .co{font-size:13px}.co.bottom{white-space:normal;width:90%;font-size:14px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="hdr" id="hdr">
+    <div class="brand">Project Management Analytics</div>
+    <nav class="tabs" id="tabs" role="tablist">
+      <button class="tab" role="tab" data-page="overview">Overview</button>
+      <button class="tab" role="tab" data-page="performance">Project Performance &amp; Delivery</button>
+      <button class="tab" role="tab" data-page="tracking">Projects Tracking</button>
+    </nav>
+    <div class="tools">
+      <button class="ib plain" id="btnSlicers" title="Slicers" aria-label="Slicers">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M3 6h11M18 6h3M3 12h5M12 12h9M3 18h13M20 18h1"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+        <span class="dot"></span>
+      </button>
+      <button class="ib" id="btnHelp" title="User guideline" aria-label="Help"><b style="font-size:17px">?</b></button>
+      <button class="ib" id="btnReset" title="Reset the Dashboard" aria-label="Reset">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M20 12a8 8 0 0 1-14 5.3M4 12A8 8 0 0 1 18 6.7"/><path d="M18 2v5h-5M6 22v-5h5"/></svg>
+      </button>
+    </div>
+    <div class="slp" id="slp"></div>
+  </header>
+  <div class="chips" id="chips"></div>
+  <main id="main"></main>
+</div>
+<div id="tip"></div>
+<div id="help"></div>
+
+<script>
+/* ============ DATA (deterministic synthetic fintech PM dataset) ============ */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const R=mulberry32(20251204);
+const U=(a,b)=>a+(b-a)*R();
+const pick=a=>a[Math.floor(R()*a.length)];
+const wpick=(items,w)=>{let r=R()*w.reduce((s,x)=>s+x,0);for(let i=0;i<items.length;i++){r-=w[i];if(r<=0)return items[i]}return items[items.length-1]};
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(R()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const DAY=864e5, D=(y,m,d)=>new Date(Date.UTC(y,m-1,d));
+
+const PNAMES=["Recurring Billing","EuroWallet","OpenBank API","Merchant Insights","PISP Gateway","SplitPay","SEPA Plus","RiskGuard","Fraud Shield","InvoiceNow","KYC Express","Payout Hub","Chargeback Manager","Digital IBAN","Tap-to-Pay POS","AISP DataVault","Instant FX","LoanFlow","CardVault","RegTech Monitor","Smart Ledger","CryptoBridge"];
+const DEPTS=["Finance","Customer Support","Compliance & Risk","Engineering","Marketing","Data & Analytics","Product Management"];
+const COUNTRIES=["Germany","France","Netherlands","Spain","Ireland","Italy"];
+const EXPS=["Junior","Mid-Level","Senior","Expert"];
+const TASKS=["Requirements Analysis","Solution Design","API Development","Security Review","Integration Testing","Compliance Check","User Acceptance Testing","Go-Live Deployment"];
+
+const risks=shuffle([...Array(18).fill("High"),...Array(34).fill("Medium"),...Array(20).fill("Low")]);
+const statuses=shuffle([...Array(30).fill("Completed"),...Array(25).fill("On Track"),...Array(11).fill("Delayed"),...Array(6).fill("Not Started")]);
+const PROJ={}, TASKROWS=[];
+for(let i=0;i<72;i++){
+  const pid="P"+String(i+1).padStart(3,"0");
+  const status=statuses[i];
+  const name=pick(PNAMES), dept=pick(DEPTS), country=pick(COUNTRIES), exp=wpick(EXPS,[2,3,3,2]);
+  const prio=wpick(["High","Medium","Low"],[35,45,20]);
+  let start=status==="Not Started"? new Date(D(2025,9,1).getTime()+Math.floor(U(0,60))*DAY)
+                                   : new Date(D(2023,11,1).getTime()+Math.floor(U(0,470))*DAY);
+  let pEnd=new Date(start.getTime()+Math.round(U(120,330))*DAY);
+  if(pEnd>D(2025,12,20)) pEnd=new Date(D(2025,12,20).getTime()-Math.floor(U(0,25))*DAY);
+  if(pEnd<=start) pEnd=new Date(start.getTime()+90*DAY);
+  const pb=Math.round(U(.55,2.4)*1000)*1000, ph=Math.round(U(450,1420));
+  let br=0,hr=0;
+  if(status==="Completed"){br=R()<.1?U(.95,1.08):U(.35,.9);hr=U(.45,.9)}
+  else if(status==="On Track"){br=U(.2,.6);hr=U(.35,.75)}
+  else if(status==="Delayed"){br=R()<.27?U(1.0,1.12):U(.4,.9);hr=U(.55,1.0)}
+  const ab=Math.round(pb*br/1000)*1000, ah=Math.round(ph*hr);
+  const aStart=status==="Not Started"?null:new Date(start.getTime()+Math.floor(U(0,12))*DAY);
+  let aEnd=null,onTime=null;
+  if(status==="Completed"){onTime=R()<.9;aEnd=new Date(pEnd.getTime()+(onTime?-Math.floor(U(0,40)):Math.floor(U(5,50)))*DAY);}
+  const year=pEnd.getUTCFullYear(), quarter="Q"+(Math.floor(pEnd.getUTCMonth()/3)+1);
+  const P={pid,name,dept,country,exp,prio,risk:risks[i],status,pb,ab,ph,ah,aStart,aEnd,pEnd,onTime,year,quarter};
+  PROJ[pid]=P;
+  // tasks
+  const n=3+Math.floor(R()*3);
+  const idx=shuffle([...TASKS.keys()]).slice(0,n).sort((a,b)=>a-b);
+  const w=idx.map(()=>U(.6,1.4)), ws=w.reduce((s,x)=>s+x,0);
+  const tst=idx.map((_,k)=>status==="Completed"?"Completed":status==="Not Started"?"Not Started":(k===n-1&&R()<.6?"Not Started":(k===0&&R()<.5?"Completed":"In Progress")));
+  const startedW=w.reduce((s,x,k)=>s+(tst[k]!=="Not Started"?x:0),0)||1;
+  const spanEnd=(aEnd||pEnd).getTime(), spanStart=(aStart||start).getTime(), span=spanEnd-spanStart;
+  let cum=0;
+  idx.forEach((ti,k)=>{
+    const s0=cum/ws; cum+=w[k]; const s1=cum/ws;
+    const started=tst[k]!=="Not Started";
+    TASKROWS.push({pid,name,dept,country,exp,prio,risk:P.risk,status,year,quarter,
+      task:TASKS[ti],tStatus:tst[k],tPrio:wpick(["High","Medium","Low"],[29,55,16]),
+      aStart:started?new Date(spanStart+span*s0):null,
+      aEnd:tst[k]==="Completed"?new Date(spanStart+span*s1):null,
+      pb:Math.round(pb*w[k]/ws), ph:ph*w[k]/ws,
+      ab:started?Math.round(ab*w[k]/startedW):0, ah:started?ah*w[k]/startedW:0});
+  });
+}
+
+/* calibrate headline totals to the reference report */
+(function(){
+  const T={pb:105.53e6,ab:54.66e6,ph:67445,ah:44277};
+  for(const f in T){
+    const tot=TASKROWS.reduce((s,t)=>s+t[f],0), k=T[f]/tot;
+    TASKROWS.forEach(t=>{t[f]=f[1]==="b"?Math.round(t[f]*k):t[f]*k});
+    Object.values(PROJ).forEach(p=>{p[f]=p[f]*k});
+  }
+})();
+
+/* ============ STATE ============ */
+const SLICERS=[{k:"country",label:"Project Country",opts:COUNTRIES.slice().sort()},
+               {k:"year",label:"Planned End Year",opts:[...new Set(TASKROWS.map(t=>t.year))].sort()},
+               {k:"exp",label:"Employee Experience Level",opts:EXPS}];
+const LABELS={dept:"Department",name:"Project",task:"Task",status:"Status",risk:"Risk Level",prio:"Priority",tStatus:"Task Status",tPrio:"Task Priority",year:"Year",quarter:"Quarter"};
+const state={};
+function initState(){
+  state.page=state.page||"overview";
+  state.slicers={country:new Set(),year:new Set(),exp:new Set()};
+  state.sel={overview:{},performance:{},tracking:{}};
+  state.sort={col:"dur",dir:-1};
+  state.expDept=new Set(DEPTS); state.expProj=new Set();
+}
+initState();
+const S=()=>state.sel[state.page];
+function rows(ex=[]){
+  const s=state.slicers, sel=S();
+  return TASKROWS.filter(t=>{
+    for(const k in s){ if(s[k].size && !s[k].has(t[k])) return false; }
+    for(const k in sel){ if(ex.includes(k)) continue; if(sel[k]!=null && t[k]!==sel[k]) return false; }
+    return true;
+  });
+}
+function group(rs,key){
+  const m=new Map();
+  rs.forEach(t=>{const k=t[key];let g=m.get(k);if(!g){g={key:k,pb:0,ab:0,ph:0,ah:0,n:0,pids:new Set()};m.set(k,g)}
+    g.pb+=t.pb;g.ab+=t.ab;g.ph+=t.ph;g.ah+=t.ah;g.n++;g.pids.add(t.pid)});
+  return [...m.values()];
+}
+const sum=(rs,f)=>rs.reduce((s,t)=>s+t[f],0);
+
+/* ============ FORMAT ============ */
+const fM=v=>"€ "+(v/1e6).toFixed(2)+"M";
+const fInt=v=>Math.round(v).toLocaleString("en-US");
+const fPct=v=>isFinite(v)?(v*100).toFixed(2)+"%":"—";
+const fEur=v=>(v<0?"-":"")+"€ "+Math.abs(Math.round(v)).toLocaleString("de-DE");
+const fDate=d=>d?`${d.getUTCMonth()+1}/${d.getUTCDate()}/${d.getUTCFullYear()}`:"";
+const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+let tips=[];
+const tip=html=>{tips.push(html);return tips.length-1};
+const tipPB=(title,g,kind)=>tip(`<b>${esc(title)}</b><table>
+ <tr><td>Planned ${kind}</td><td>${kind==="Budget"?fEur(g.pb):fInt(g.ph)}</td></tr>
+ <tr><td>Actual ${kind}</td><td>${kind==="Budget"?fEur(g.ab):fInt(g.ah)}</td></tr>
+ <tr><td>Actual / Planned</td><td>${fPct(kind==="Budget"?g.ab/g.pb:g.ah/g.ph)}</td></tr>
+ <tr><td>Projects</td><td>${g.pids.size}</td></tr></table><div style="color:#888;margin-top:3px">Click to filter</div>`);
+const attrs=(k,v,clear)=>`data-k="${k}" data-v="${esc(JSON.stringify(v))}"${clear?` data-clear="${clear}"`:""} tabindex="0" role="button"`;
+
+/* ============ CHART PRIMITIVES ============ */
+function hbars(items,{k,kind,clear,labelFn}){
+  if(!items.length) return `<div class="empty">No data for the current selection</div>`;
+  const sel=S()[k];
+  const max=Math.max(1,...items.map(i=>kind==="Budget"?Math.max(i.pb,i.ab):Math.max(i.ph,i.ah)));
+  return `<div class="hb">`+items.map(i=>{
+    const p=kind==="Budget"?i.pb:i.ph, a=kind==="Budget"?i.ab:i.ah, r=p?a/p:0, over=r>1;
+    const dim=sel!=null&&sel!==i.key?" dim":"", on=sel===i.key?" selrow":"";
+    return `<div class="hb-row${dim}${on}" ${attrs(k,i.key,clear)} data-tip="${tipPB(labelFn?labelFn(i.key):i.key,i,kind)}">
+      <div class="hb-l">${esc(labelFn?labelFn(i.key):i.key)}</div>
+      <div class="hb-t"><div class="hb-p" style="width:${p/max*100}%"></div><div class="hb-a${over?" over":""}" style="width:${a/max*100}%"></div></div>
+      <div class="hb-v${over?" over":""}">${fPct(r)}</div></div>`}).join("")+`</div>`;
+}
+function niceMax(v){if(v<=0)return 1;const e=Math.pow(10,Math.floor(Math.log10(v)));const f=v/e;return (f<=1?1:f<=2?2:f<=5?5:10)*e}
+function vbars(items,{k,kind,clear,axisFmt}){
+  if(!items.length) return `<div class="empty">No data for the current selection</div>`;
+  const sel=S()[k];
+  const W=520,H=210,L=56,B=26,T=30,Rr=10, ch=H-B-T, cw=W-L-Rr;
+  const get=i=>kind==="Budget"?[i.pb,i.ab]:[i.ph,i.ah];
+  const mx=niceMax(Math.max(...items.map(i=>Math.max(...get(i)))));
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img">`;
+  const ticks=kind==="Budget"?[0,mx/2,mx]:[0,mx/4,mx/2,mx*3/4,mx];
+  ticks.forEach(t=>{const y=T+ch-t/mx*ch;s+=`<line x1="${L}" x2="${W-Rr}" y1="${y}" y2="${y}" stroke="#eee"/><text x="${L-6}" y="${y+4}" text-anchor="end" font-size="11" fill="#666">${axisFmt(t)}</text>`});
+  const bw=cw/items.length;
+  items.forEach((i,n)=>{
+    const [p,a]=get(i), x=L+bw*n, r=p?a/p:0;
+    const hp=p/mx*ch, ha=a/mx*ch, wp=bw*.72, wa=bw*.5;
+    const dim=sel!=null&&sel!==i.key?' opacity="0.32"':"";
+    s+=`<g class="vb" ${attrs(k,i.key,clear)} data-tip="${tipPB(String(i.key),i,kind)}"${dim}>
+      <rect x="${x}" y="${T}" width="${bw}" height="${ch}" fill="transparent"/>
+      <rect x="${x+(bw-wp)/2}" y="${T+ch-hp}" width="${wp}" height="${hp}" fill="#cfcfcf"/>
+      <rect x="${x+(bw-wa)/2}" y="${T+ch-ha}" width="${wa}" height="${ha}" fill="${r>1?"#f4511e":"#6f42c1"}"/>
+      <text x="${x+bw/2}" y="${T+ch-Math.max(hp,ha)-8}" text-anchor="middle" font-size="11" fill="${r>1?"#f4511e":"#6f42c1"}">${fPct(r)}</text>
+      <text x="${x+bw/2}" y="${H-8}" text-anchor="middle" font-size="12" font-weight="600" fill="#333">${esc(i.key)}</text></g>`;
+  });
+  return s+`</svg>`;
+}
+function arc(cx,cy,r,ri,a0,a1){
+  if(a1-a0>=2*Math.PI-1e-6)a1=a0+2*Math.PI-1e-4;
+  const la=a1-a0>Math.PI?1:0,p=(rr,a)=>[(cx+rr*Math.cos(a)).toFixed(2),(cy+rr*Math.sin(a)).toFixed(2)];
+  const [x0,y0]=p(r,a0),[x1,y1]=p(r,a1),[x2,y2]=p(ri,a1),[x3,y3]=p(ri,a0);
+  return `M${x0},${y0}A${r},${r} 0 ${la} 1 ${x1},${y1}L${x2},${y2}A${ri},${ri} 0 ${la} 0 ${x3},${y3}Z`;
+}
+function donut(data,{k,clear,center,r=62,ri=42,H=180,oneLine=false}){
+  data=data.filter(d=>d.v>0);
+  const total=data.reduce((s,d)=>s+d.v,0);
+  if(!total) return `<div class="empty">No data for the current selection</div>`;
+  const sel=S()[k], W=330, cx=W/2, cy=H/2;
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img">`, a0=-Math.PI/2;
+  data.forEach(d=>{
+    const a1=a0+2*Math.PI*d.v/total, m=(a0+a1)/2, c=Math.cos(m), sn=Math.sin(m);
+    const dim=sel!=null&&sel!==d.key?' opacity="0.3"':"";
+    const x1=cx+(r+3)*c,y1=cy+(r+3)*sn,x2=cx+(r+12)*c,y2=cy+(r+12)*sn,x3=x2+(c>=0?8:-8);
+    const anchor=c>=0?"start":"end", tx=x3+(c>=0?3:-3), pct=(d.v/total*100).toFixed(2)+"%";
+    const t=tip(`<b>${esc(d.label)}</b><table><tr><td>${d.unit||"Count"}</td><td>${fInt(d.v)}</td></tr><tr><td>Share</td><td>${pct}</td></tr></table><div style="color:#888;margin-top:3px">Click to ${d.drill?"drill down":"filter"}</div>`);
+    s+=`<g class="slice" ${attrs(k,d.key,clear)} data-tip="${t}"${dim}>
+      <path d="${arc(cx,cy,r,ri,a0,a1)}" fill="${d.color}" stroke="#fff" stroke-width="1.5"/>
+      <polyline points="${x1},${y1} ${x2},${y2} ${x3},${y2}" fill="none" stroke="#999" stroke-width=".8"/>
+      ${oneLine?`<text x="${tx}" y="${y2+4}" text-anchor="${anchor}" font-size="11" fill="#333">${esc(d.label)} ${pct}</text>`
+       :`<text x="${tx}" y="${y2-2}" text-anchor="${anchor}" font-size="11" fill="#333">${esc(d.label)}</text><text x="${tx}" y="${y2+11}" text-anchor="${anchor}" font-size="11" fill="#333">${pct}</text>`}
+    </g>`;
+    a0=a1;
+  });
+  if(center) s+=`<text x="${cx}" y="${cy+2}" text-anchor="middle" font-size="24" fill="#222">${center[0]}</text><text x="${cx}" y="${cy+18}" text-anchor="middle" font-size="10" fill="#444">${center[1]}</text>`;
+  return s+`</svg>`;
+}
+function gauge(v){
+  const W=200,H=170,cx=100,cy=82,r=70,ri=58, val=isFinite(v)?Math.max(0,Math.min(1,v)):0;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img"><path d="${arc(cx,cy,r,ri,0,2*Math.PI)}" fill="#e6e6e6"/>
+   ${val>0?`<path d="${arc(cx,cy,r,ri,-Math.PI/2,-Math.PI/2+2*Math.PI*val)}" fill="#6f42c1"/>`:""}
+   <text x="${cx}" y="${cy+8}" text-anchor="middle" font-size="24" fill="#222">${fPct(v)}</text></svg>`;
+}
+const card=(pos,inner,cls="")=>`<section class="card ${cls}" style="grid-column:${pos[0]};grid-row:${pos[1]}">${inner}</section>`;
+const head=(t,sub,info,up)=>`<h3>${t}</h3>${sub?`<div class="sub">${sub}</div>`:""}${up?`<button class="up" data-up="${up}" title="Drill up">⬆ Up</button>`:""}<span class="info" title="${esc(info)}">?</span>`;
+const kpiBlock=items=>`<div class="kpis">${items.map(([l,v])=>`<div><div class="kl">${l}</div><div class="kv">${v}</div></div>`).join("")}</div>`;
+const legend=kind=>`<div class="legend"><span><i style="background:#cfcfcf"></i>Planned ${kind}</span><span><i style="background:#6f42c1"></i>Actual ${kind}</span></div>`;
+
+const STATUS_COL={"Completed":"#6f42c1","On Track":"#a693e0","Delayed":"#d8cef2","Not Started":"#e06666"};
+const RISK_COL={"High":"#a86bc8","Medium":"#a9a2e2","Low":"#6f42c1"};
+const PRIO_COL={"High":"#6f42c1","Medium":"#a693e0","Low":"#d8cef2"};
+const TSTAT_COL={"Completed":"#a693e0","In Progress":"#6f42c1","Not Started":"#d8cef2"};
+function countBy(rs,key,order,col,distinctProjects=true){
+  return order.map(o=>{const f=rs.filter(t=>t[key]===o);return{key:o,label:o,color:col[o],v:distinctProjects?new Set(f.map(t=>t.pid)).size:f.length}});
+}
+function kpis(rs){
+  const pb=sum(rs,"pb"),ab=sum(rs,"ab"),ph=sum(rs,"ph"),ah=sum(rs,"ah");
+  return {pb,ab,ph,ah,cv:pb-ab,cvp:pb?(pb-ab)/pb:NaN,tv:ph-ah,tvp:ph?(ph-ah)/ph:NaN};
+}
+function perfKpis(rs){
+  const pids=[...new Set(rs.map(t=>t.pid))].map(id=>PROJ[id]).filter(p=>p.status==="Completed");
+  const onTime=pids.length?pids.filter(p=>p.onTime).length/pids.length:NaN;
+  const done=rs.filter(t=>t.tStatus==="Completed");
+  const tEff=sum(done,"ah")?sum(done,"ph")/sum(done,"ah"):NaN;
+  const prog=rs.filter(t=>t.tStatus==="In Progress").length;
+  const taskEff=rs.length?(done.length+.5*prog)/rs.length:NaN;
+  const parts=[[onTime,.4],[isFinite(tEff)?Math.min(tEff,1):NaN,.3],[taskEff,.3]].filter(p=>isFinite(p[0]));
+  const wsum=parts.reduce((s,p)=>s+p[1],0);
+  const pm=wsum?parts.reduce((s,p)=>s+p[0]*p[1],0)/wsum:NaN;
+  const rating=!isFinite(pm)?"—":pm>=.9?"Excellent":pm>=.75?"Good":pm>=.6?"Fair":"Poor";
+  return {onTime,tEff,taskEff,pm,rating};
+}
+const byActual=f=>(a,b)=>b[f]-a[f];
+
+/* ============ PAGES ============ */
+function renderOverview(){
+  const k=kpis(rows()), sel=S();
+  // quarterly budget drill year>quarter
+  const qb=rows(["year","quarter"]); let qItems, drilled=sel.year!=null;
+  if(!drilled) qItems=group(qb,"year").sort((a,b)=>a.key-b.key);
+  else qItems=group(qb.filter(t=>t.year===sel.year),"quarter").sort((a,b)=>a.key<b.key?-1:1);
+  const dept=group(rows(["dept"]),"dept").sort(byActual("ab"));
+  const proj=group(rows(["name"]),"name").sort(byActual("pb"));
+  const st=countBy(rows(["status"]),"status",["Completed","On Track","Delayed","Not Started"],STATUS_COL);
+  const rk=countBy(rows(["risk"]),"risk",["High","Medium","Low"],RISK_COL);
+  return card(["1/14","1"],kpiBlock([["Actual Budget",fM(k.ab)],["Planned Budget",fM(k.pb)],["Cost Variance %",fPct(k.cvp)],["Cost Variance",fM(k.cv)]]))
+   +card(["1/14","2"],kpiBlock([["Actual Hours",fInt(k.ah)],["Planned Hours",fInt(k.ph)],["Time Variance %",fPct(k.tvp)],["Time Variance",fInt(k.tv)]]))
+   +card(["14/25","1/3"],head(drilled?`Planned vs. Actual Quarterly Budget — ${sel.year}`:"Planned vs. Actual Quarterly Budget","#Drill Down from Year&gt;Quarter","Planned and actual budget by planned end year. Click a year to drill down to quarters.",drilled?"year,quarter":"")+legend("Budget")
+       +`<div class="chartbox">${vbars(qItems,{k:drilled?"quarter":"year",kind:"Budget",clear:drilled?"":"quarter",axisFmt:v=>v?"€ "+Math.round(v/1e6)+"M":"€ 0"})}</div>`)
+   +card(["1/10","3"],head("Budget vs. Actual Costs by Department","","Planned vs actual budget per department. Click a department to cross-filter.")+legend("Budget")+hbars(dept,{k:"dept",kind:"Budget"}),"tall")
+   +card(["10/19","3"],head("Budget vs. Actual Project Cost","","Planned vs actual cost per project. Orange = actual cost above plan. Click to cross-filter.")+legend("Budget")+hbars(proj,{k:"name",kind:"Budget"}),"tall")
+   +card(["19/25","3"],`<div class="split"><div>${head("Project Status Counts","","Number of projects by status. Click a slice to filter.")}<div class="chartbox">${donut(st,{k:"status"})}</div></div>
+       <div style="position:relative">${head("Project Risk Level Counts","","Number of projects by risk level. Click a slice to filter.")}<div class="chartbox">${donut(rk,{k:"risk",oneLine:true})}</div></div></div>`,"tall");
+}
+function renderPerformance(){
+  const rs=rows(), k=kpis(rs), p=perfKpis(rs), sel=S();
+  const hb=rows(["year","quarter"]), drilled=sel.year!=null;
+  const hItems=drilled?group(hb.filter(t=>t.year===sel.year),"quarter").sort((a,b)=>a.key<b.key?-1:1):group(hb,"year").sort((a,b)=>a.key-b.key);
+  const pd=sel.name!=null, pr=rows(["name","task"]);
+  const pItems=pd?group(pr.filter(t=>t.name===sel.name),"task").sort(byActual("ah")):group(pr,"name").sort(byActual("ah"));
+  const dept=group(rows(["dept"]),"dept").sort(byActual("ah"));
+  const ts=countBy(rows(["tStatus"]),"tStatus",["In Progress","Completed","Not Started"],TSTAT_COL,false).map(d=>({...d,unit:"Tasks"}));
+  const tp=countBy(rows(["tPrio"]),"tPrio",["Medium","High","Low"],{"Medium":"#6f42c1","High":"#a693e0","Low":"#d8cef2"},false).map(d=>({...d,unit:"Tasks"}));
+  return card(["1/9","1"],kpiBlock([["On-Time Delivery %",fPct(p.onTime)],["Time Efficiency %",fPct(p.tEff)]]))
+   +card(["1/9","2"],kpiBlock([["Task Efficiency Score",fPct(p.taskEff)],["Cost Variance %",fPct(k.cvp)]]))
+   +card(["9/14","1/3"],head("PM Efficiency Score","","Weighted score: 40% On-Time Delivery, 30% Time Efficiency (capped at 100%), 30% Task Efficiency.")+`<div class="chartbox" style="flex-direction:column">${gauge(p.pm)}<div class="gauge-meta"><div class="l">PM Rating</div><div class="v">${p.rating}</div></div></div>`)
+   +card(["14/25","1/3"],head(drilled?`Planned vs. Actual Annual Hours — ${sel.year}`:"Planned vs. Actual Annual Hours","#Drill Down from Year&gt;Quarter","Planned and actual hours by planned end year. Click a year to drill down to quarters.",drilled?"year,quarter":"")+legend("Hours")
+       +`<div class="chartbox">${vbars(hItems,{k:drilled?"quarter":"year",kind:"Hours",clear:drilled?"":"quarter",axisFmt:v=>v>=1000?Math.round(v/1000)+"K":String(Math.round(v))})}</div>`)
+   +card(["1/10","3"],head(pd?`Planned vs. Actual Project Hours — ${esc(sel.name)}`:"Planned vs. Actual Project Hours","#Drill Down from Project Name&gt;Task Name","Hours per project; click a project to drill down to its tasks.",pd?"name,task":"")+legend("Hours")+hbars(pItems,{k:pd?"task":"name",kind:"Hours",clear:pd?"":"task"}),"tall")
+   +card(["10/19","3"],head("Planned vs. Actual Department Hours","","Planned vs actual hours per department. Click to cross-filter.")+legend("Hours")+hbars(dept,{k:"dept",kind:"Hours"}),"tall")
+   +card(["19/25","3"],`<div class="split"><div>${head("Tasks by Status","","Number of tasks by task status. Click to filter.")}<div class="chartbox">${donut(ts,{k:"tStatus"})}</div></div>
+       <div style="position:relative">${head("Task by Priority","","Number of tasks by task priority. Click to filter.")}<div class="chartbox">${donut(tp,{k:"tPrio"})}</div></div></div>`,"tall");
+}
+function renderTracking(){
+  const k=kpis(rows()), sel=S();
+  const rd=sel.risk!=null, rr=rows(["risk","prio"]);
+  const rItems=rd?countBy(rr.filter(t=>t.risk===sel.risk),"prio",["High","Medium","Low"],PRIO_COL):countBy(rr,"risk",["High","Medium","Low"],RISK_COL).map(d=>({...d,drill:true}));
+  const centerN=rItems.reduce((s,d)=>s+d.v,0);
+  const sb=group(rows(["status"]),"status");
+  const order=["Completed","On Track","Delayed","Not Started"];
+  sb.sort((a,b)=>order.indexOf(a.key)-order.indexOf(b.key));
+  return card(["1/10","1"],kpiBlock([["Actual Budget",fM(k.ab)],["Planned Budget",fM(k.pb)],["Cost Variance %",fPct(k.cvp)]]))
+   +card(["1/10","2"],kpiBlock([["Actual Hours",fInt(k.ah)],["Planned Hours",fInt(k.ph)],["Time Variance %",fPct(k.tvp)]]))
+   +card(["10/17","1/3"],head(rd?`Projects by Risk Level — ${sel.risk} › Priority`:"Projects by Risk Level","#Drill Down from Risk Level&gt;Priority","Projects by risk level. Click a slice to drill down to priority.",rd?"risk,prio":"")
+       +`<div class="chartbox">${donut(rItems,{k:rd?"prio":"risk",clear:rd?"":"prio",center:[centerN,"Project Counts"],H:200,oneLine:true})}</div>`)
+   +card(["17/25","1/3"],head("Planned vs. Actual Budget by Status","","Planned vs actual budget per project status. Click to cross-filter.")+legend("Budget")+hbars(sb,{k:"status",kind:"Budget"}))
+   +card(["1/25","3"],renderTable(),"tall");
+}
+/* ---- hierarchical table ---- */
+const COLS=[["label","Department | Project Name | Task Name"],["tStatus","TaskStatus"],["tPrio","Priority"],["aStart","ActualStartDate"],["aEnd","ActualEndDate"],["dur","Duration (Days)",1],["status","Status"],["risk","RiskLevel"],["ab","Actual Budget",1],["pb","Planned Budget",1],["cv","Cost Variance",1],["cvp","Cost Variance %",1]];
+function agg(list,label){
+  const ab=sum(list,"ab"),pb=sum(list,"pb");
+  const st=list.map(t=>t.aStart).filter(Boolean), allEnd=list.every(t=>t.aEnd);
+  const aStart=st.length?new Date(Math.min(...st)):null, aEnd=allEnd&&list.length?new Date(Math.max(...list.map(t=>t.aEnd))):null;
+  return {label,ab,pb,cv:pb-ab,cvp:pb?(pb-ab)/pb:0,aStart,aEnd,dur:aStart&&aEnd?Math.round((aEnd-aStart)/DAY):null};
+}
+function sortList(list){
+  const {col,dir}=state.sort;
+  return list.sort((a,b)=>{let x=a[col],y=b[col];
+    if(x instanceof Date)x=+x; if(y instanceof Date)y=+y;
+    if(x==null&&y==null)return 0; if(x==null)return 1; if(y==null)return -1;
+    return (typeof x==="string"?x.localeCompare(y):x-y)*dir;});
+}
+function renderTable(){
+  const rs=rows(["dept","name"]), sel=S();
+  const depts=DEPTS.map(d=>{const l=rs.filter(t=>t.dept===d);return l.length?{...agg(l,d),dept:d,list:l}:null}).filter(Boolean);
+  sortList(depts);
+  const tsCls=s=>s?s.replace(" ",""):"";
+  const cells=(o,txt)=>`<td>${txt}</td><td>${o.tStatus?`<span class="ts ${tsCls(o.tStatus)}">${o.tStatus}</span>`:""}</td><td>${o.tPrio||""}</td><td>${fDate(o.aStart)}</td><td>${fDate(o.aEnd)}</td><td class="num">${o.dur??""}</td><td>${o.status||""}</td><td>${o.risk||""}</td>
+    <td class="num">${fEur(o.ab)}</td><td class="num">${fEur(o.pb)}</td><td class="num${o.cv<0?" neg":""}">${fEur(o.cv)}</td><td class="num${o.cvp<0?" neg":""}">${fPct(o.cvp)}</td>`;
+  let body="";
+  depts.forEach(d=>{
+    const open=state.expDept.has(d.dept);
+    const ds=sel.dept!=null?(sel.dept===d.dept?" selr":" dimr"):"";
+    body+=`<tr class="dep${ds}" ${attrs("dept",d.dept)}>${cells(d,`<span class="exp" data-exp="d:${esc(d.dept)}">${open?"−":"+"}</span>${esc(d.dept)}`)}</tr>`;
+    if(!open) return;
+    const pids=[...new Set(d.list.map(t=>t.pid))].map(pid=>{const l=d.list.filter(t=>t.pid===pid),P=PROJ[pid];
+      const ts=l.every(t=>t.tStatus==="Completed")?"Completed":l.every(t=>t.tStatus==="Not Started")?"Not Started":"In Progress";
+      return {...agg(l,pid+"-"+P.name),pid,name:P.name,list:l,tStatus:ts,tPrio:P.prio,status:P.status,risk:P.risk}});
+    sortList(pids).forEach(p=>{
+      const po=state.expProj.has(p.pid);
+      const ps=sel.name!=null?(sel.name===p.name?" selr":" dimr"):"";
+      body+=`<tr class="prj${ps}" ${attrs("name",p.name)}>${cells(p,`<span class="exp" data-exp="p:${p.pid}">${po?"−":"+"}</span>${esc(p.label)}`)}</tr>`;
+      if(!po) return;
+      sortList(p.list.map(t=>({...agg([t],t.task),tStatus:t.tStatus,tPrio:t.tPrio,status:t.status,risk:t.risk}))).forEach(t=>{
+        body+=`<tr class="tsk">${cells(t,esc(t.label))}</tr>`});
+    });
+  });
+  const tot=agg(rs,"Total");
+  const th=COLS.map(([c,l,num])=>`<th class="${num?"num":""}" data-sort="${c}">${l}${state.sort.col===c?(state.sort.dir<0?" ▼":" ▲"):""}</th>`).join("");
+  return `<div class="tbl-wrap"><table><thead><tr>${th}</tr></thead><tbody>${body||`<tr><td colspan="12" class="empty">No data for the current selection</td></tr>`}</tbody>
+   <tfoot><tr class="tot"><td>Total</td><td></td><td></td><td>${fDate(tot.aStart)}</td><td>${fDate(tot.aEnd)}</td><td class="num">${tot.dur??""}</td><td></td><td></td><td class="num">${fEur(tot.ab)}</td><td class="num">${fEur(tot.pb)}</td><td class="num">${fEur(tot.cv)}</td><td class="num">${fPct(tot.cvp)}</td></tr></tfoot></table></div>`;
+}
+
+/* ============ RENDER / INTERACTION ============ */
+const main=document.getElementById("main");
+function renderChips(){
+  const out=[];
+  SLICERS.forEach(s=>{const v=state.slicers[s.k];if(v.size)out.push(`<span class="chip">${s.label}: ${esc([...v].join(", "))}<button data-unslice="${s.k}" aria-label="Remove">×</button></span>`)});
+  const sel=S(); for(const k in sel) out.push(`<span class="chip">${LABELS[k]}: ${esc(sel[k])}<button data-unsel="${k}" aria-label="Remove">×</button></span>`);
+  document.getElementById("chips").innerHTML=out.join("");
+  document.getElementById("btnSlicers").classList.toggle("on",SLICERS.some(s=>state.slicers[s.k].size));
+}
+function render(){
+  tips=[];
+  document.querySelectorAll(".tab").forEach(b=>{const a=b.dataset.page===state.page;b.classList.toggle("active",a);b.setAttribute("aria-selected",a)});
+  const sc=main.querySelector(".tbl-wrap")?.scrollTop;
+  main.innerHTML=`<div class="page">${state.page==="overview"?renderOverview():state.page==="performance"?renderPerformance():renderTracking()}</div>`;
+  if(sc!=null&&main.querySelector(".tbl-wrap")) main.querySelector(".tbl-wrap").scrollTop=sc;
+  renderChips(); hideTip();
+}
+function activate(el){
+  const k=el.dataset.k, v=JSON.parse(el.dataset.v), s=S();
+  const clear=(el.dataset.clear||"").split(",").filter(Boolean);
+  if(s[k]===v) delete s[k]; else s[k]=v;
+  clear.forEach(c=>delete s[c]);
+  render();
+}
+document.addEventListener("click",e=>{
+  const t=e.target;
+  const tab=t.closest(".tab"); if(tab){state.page=tab.dataset.page;render();return}
+  const ex=t.closest("[data-exp]"); if(ex){const [ty,id]=ex.dataset.exp.split(/:(.*)/s);const set=ty==="d"?state.expDept:state.expProj;set.has(id)?set.delete(id):set.add(id);render();return}
+  const so=t.closest("[data-sort]"); if(so){const c=so.dataset.sort;state.sort=state.sort.col===c?{col:c,dir:-state.sort.dir}:{col:c,dir:c==="label"?1:-1};render();return}
+  const up=t.closest("[data-up]"); if(up){up.dataset.up.split(",").forEach(k=>delete S()[k]);render();return}
+  const us=t.closest("[data-unsel]"); if(us){delete S()[us.dataset.unsel];render();return}
+  const ul=t.closest("[data-unslice]"); if(ul){state.slicers[ul.dataset.unslice].clear();buildSlicers();render();return}
+  const kk=t.closest("[data-k]"); if(kk){activate(kk);return}
+});
+document.addEventListener("keydown",e=>{
+  if((e.key==="Enter"||e.key===" ")&&e.target.matches("[data-k]")){e.preventDefault();activate(e.target)}
+  if(e.key==="Escape"){closeHelp();document.getElementById("slp").classList.remove("open")}
+});
+/* tooltip */
+const tipEl=document.getElementById("tip");
+function hideTip(){tipEl.style.display="none"}
+document.addEventListener("mousemove",e=>{
+  const el=e.target.closest("[data-tip]");
+  if(!el||tips[el.dataset.tip]==null){hideTip();return}
+  tipEl.innerHTML=tips[el.dataset.tip]; tipEl.style.display="block";
+  const w=tipEl.offsetWidth,h=tipEl.offsetHeight;
+  let x=e.clientX+14,y=e.clientY+14;
+  if(x+w>innerWidth-6)x=e.clientX-w-14; if(y+h>innerHeight-6)y=e.clientY-h-14;
+  tipEl.style.left=x+"px"; tipEl.style.top=y+"px";
+});
+/* slicers */
+function buildSlicers(){
+  const slp=document.getElementById("slp");
+  slp.innerHTML=SLICERS.map(s=>{const set=state.slicers[s.k];
+    const summ=set.size===0?"All":set.size===1?[...set][0]:"Multiple selections";
+    return `<div class="slicer"><label>${s.label}</label><button class="sbtn" data-open="${s.k}"><span>${esc(summ)}</span><span>▾</span></button>
+      <div class="slist" id="sl-${s.k}"><label class="all"><input type="checkbox" data-all="${s.k}" ${set.size===0?"checked":""}> Select all</label>
+      ${s.opts.map(o=>`<label><input type="checkbox" data-sk="${s.k}" value="${esc(o)}" ${set.has(o)?"checked":""}> ${esc(o)}</label>`).join("")}</div></div>`}).join("");
+}
+const slp=document.getElementById("slp");
+document.getElementById("btnSlicers").addEventListener("click",e=>{e.stopPropagation();slp.classList.toggle("open")});
+slp.addEventListener("click",e=>{
+  e.stopPropagation();
+  const ob=e.target.closest("[data-open]");
+  if(ob){const l=document.getElementById("sl-"+ob.dataset.open),was=l.classList.contains("open");slp.querySelectorAll(".slist").forEach(x=>x.classList.remove("open"));if(!was)l.classList.add("open");}
+});
+slp.addEventListener("change",e=>{
+  const i=e.target, k=i.dataset.sk||i.dataset.all; if(!k)return;
+  const set=state.slicers[k], s=SLICERS.find(x=>x.k===k);
+  if(i.dataset.all) set.clear();
+  else{const v=k==="year"?Number(i.value):i.value; i.checked?set.add(v):set.delete(v); if(set.size===s.opts.length)set.clear();}
+  buildSlicers(); document.getElementById("sl-"+k).classList.add("open"); render();
+});
+document.addEventListener("click",e=>{if(!e.target.closest("#slp")&&!e.target.closest("#btnSlicers"))slp.classList.remove("open")});
+/* reset */
+document.getElementById("btnReset").addEventListener("click",()=>{initState();buildSlicers();slp.classList.remove("open");render()});
+/* help overlay */
+const help=document.getElementById("help");
+function openHelp(){
+  const r=id=>document.getElementById(id).getBoundingClientRect();
+  const tb=r("tabs"),sl=r("btnSlicers"),hp=r("btnHelp"),rs=r("btnReset");
+  const pos=(x,y,txt,align)=>`<div class="co" style="top:${y}px;${align==="r"?`right:${Math.max(8,innerWidth-x)}px`:`left:${Math.max(8,x)}px`}">${txt}</div>`;
+  help.innerHTML=pos(tb.left+tb.width/2-150,tb.bottom+14,"Select a tab to navigate to a page.")
+   +pos(sl.right+20,sl.bottom+60,"Slicers: Country, Planned End Year &amp; Experience Level.","r")
+   +pos(hp.right+20,hp.bottom+150,"Do you need help?<br>Click a bar, slice or table row to cross-filter. Click it again to clear. Use ⬆ Up to drill up.","r")
+   +pos(rs.right,rs.bottom+300,"Click this button to Reset the Dashboard.","r")
+   +`<div class="co bottom">Click anywhere on the page to return to the main page.</div>`;
+  help.classList.add("open");
+}
+function closeHelp(){help.classList.remove("open")}
+document.getElementById("btnHelp").addEventListener("click",e=>{e.stopPropagation();openHelp()});
+help.addEventListener("click",closeHelp);
+
+buildSlicers(); render();
+</script>
+</body>
+</html>
